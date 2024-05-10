@@ -15,26 +15,29 @@ BUF_SIZE = 4096*1000
 HOST = "localhost"
 PORT = 9999
 
-def regular_connection(client, msg):
-    #connect to server
-    client.connect((HOST, PORT))
-    #send message
-    client.sendall(msg.encode())
-    print("Message was sent")
+CERT_FILE = "cert.crt"
 
-    #receive dat from server
-    data = client.recv(BUF_SIZE)
-    print("Client received", data.decode())
-    client.close()
-    
-    
+def tls_connection(client, msg):
+    try:
+        ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=CERT_FILE)        
+        with ssl_context.wrap_socket(client, server_hostname=HOST) as ssl_client:
+            ssl_client.connect((HOST, PORT))
+            ssl_client.sendall(msg.encode())
+            print("Message was sent")
+
+            data = ssl_client.recv(BUF_SIZE)
+            print("Client received", data.decode())
+
+    except Exception as e:
+        print("Error:", e)
+
 def main():
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # read data from user
         msg = input("Enter your message: ")
         #connect to server
-        regular_connection(client, msg)
+        tls_connection(client, msg)
 
     except:
         print(sys.exc_info()[0])

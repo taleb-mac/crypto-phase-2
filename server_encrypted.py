@@ -14,15 +14,21 @@ HOST = "localhost"
 BUF_SIZE = 4096*1000
 PORT = 9999
 
-def regular_connection(s):
-    client, addr = s.accept()
-    print("Client accepted")
-    # read and print the msg from the client
-    data = client.recv(BUF_SIZE)
-    print("Client sent", data.decode())
-    # send back the same message to the client
-    client.sendall(data)
+CERT_FILE = "cert.crt"
+KEY_FILE = "key.pem"
 
+def tls_connection(s):
+  client, addr = s.accept()
+  print("Client accepted")
+
+  ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+  ssl_context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
+
+  with ssl_context.wrap_socket(client, server_side=True) as ssl_client:
+    data = ssl_client.recv(BUF_SIZE)
+    print("Client sent", data.decode())
+
+    ssl_client.sendall(data)
 
 def main():
   #create tcp socket
@@ -30,7 +36,7 @@ def main():
   s.bind((HOST, PORT))
   #listen to incomming connections
   s.listen(1)
-  regular_connection(s)
+  tls_connection(s)
 
 if __name__ == "__main__":
   main()
